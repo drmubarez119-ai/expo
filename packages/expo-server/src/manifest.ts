@@ -73,7 +73,7 @@ export interface RouteInfo<TRegex = RegExp | string> {
 }
 
 /**
- * A per-path header rule, applied to matching page responses only.
+ * A per-path header rule, applied to matching page responses.
  *
  * For scalar headers, the order is headers already on the response (set by
  * `expo-server` or declared by the route itself), then matching rules, then
