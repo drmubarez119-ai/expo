@@ -217,7 +217,7 @@ describe('unstable_integrateWithRouter / unstable_createStandardRouterNavigator'
     expect(routeSourceByName).toEqual({ index: 'layout', second: 'filesystem' });
   });
 
-  it('filters out Protected screens whose guard is false', () => {
+  it('keeps Protected screens whose guard is false registered but hidden', () => {
     renderRouter({
       _layout: () => (
         <StandardTabs>
@@ -231,7 +231,12 @@ describe('unstable_integrateWithRouter / unstable_createStandardRouterNavigator'
       second: () => <View testID="second" />,
     });
 
-    expect(lastArgs().state.routes.map((r) => r.name)).toEqual(['index']);
+    // Guarded routes stay in navigation state; navigators hide them via options.
+    expect(lastArgs().state.routes.map((r) => r.name)).toEqual(['index', 'second']);
+    const secondKey = lastArgs().state.routes.find((r) => r.name === 'second')!.key;
+    expect(lastArgs().descriptors[secondKey]!.options).toMatchObject({ hidden: true });
+    // The guarded route's content does not render.
+    expect(screen.queryByTestId('second')).toBeNull();
   });
 
   it('propagates route params into state and href', () => {
