@@ -162,7 +162,8 @@ export function withLayoutContext<
 >(
   Nav: T,
   processor?: (options: ScreenProps[], node: RouteNode | null) => ScreenProps[],
-  useOnlyUserDefinedScreens: boolean = false
+  useOnlyUserDefinedScreens: boolean = false,
+  postProcessor?: (screens: ReactNode[], node: RouteNode | null) => ReactNode[]
 ) {
   return Object.assign(
     forwardRef(({ children: userDefinedChildren, ...props }: any, ref) => {
@@ -179,16 +180,17 @@ export function withLayoutContext<
       const processed = processor ? processor(screens ?? [], node) : screens;
 
       const sorted = useSortedScreens(processed ?? [], protectedScreens, useOnlyUserDefinedScreens);
+      const processedSorted = postProcessor ? postProcessor(sorted, node) : sorted;
 
       // Prevent throwing an error when there are no screens.
-      if (!sorted.length) {
+      if (!processedSorted.length) {
         return null;
       }
 
       return (
         <IsWithinLayoutContext value>
           <GuardContextProvider node={node} guardedRedirects={guardedRedirects}>
-            <Nav {...props} id={contextKey} ref={ref} children={sorted} />
+            <Nav {...props} id={contextKey} ref={ref} children={processedSorted} />
           </GuardContextProvider>
         </IsWithinLayoutContext>
       );
