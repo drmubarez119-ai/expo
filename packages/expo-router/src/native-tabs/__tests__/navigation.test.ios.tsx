@@ -189,6 +189,10 @@ describe('Native Bottom Tabs route registration', () => {
     return tabState.routes.map((r) => r.name);
   }
 
+  function tabState() {
+    return store.navigationRef.getRootState().routes[0]!.state!;
+  }
+
   it('registers routes without visible triggers but does not show them as tabs', () => {
     renderRouter({
       _layout: () => (
@@ -226,12 +230,16 @@ describe('Native Bottom Tabs route registration', () => {
       second: () => <View testID="second" />,
     });
     expect(tabRouteNames()).toEqual(['index', 'second']);
+    const key = tabState().key;
+    const routeNames = tabState().routeNames;
 
     TabsScreen.mockClear();
     act(() => setShowSecond(false));
 
     // The route stays registered, but its tab item is gone.
     expect(tabRouteNames()).toEqual(['index', 'second']);
+    expect(tabState().key).toBe(key);
+    expect(tabState().routeNames).toEqual(routeNames);
     expect(TabsScreen).toHaveBeenCalledTimes(1);
     expect(TabsScreen.mock.calls[0]![0].screenKey).toMatch(/^index-[-\w]+/);
 
