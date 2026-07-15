@@ -241,6 +241,38 @@ it('can dynamically add tabs', () => {
   expect(screen).toHaveSegments(['orange']);
 });
 
+it('can dynamically remove the active tab', () => {
+  renderRouter(
+    {
+      _layout: function TabLayout() {
+        const [showAll, setShowAll] = useState(true);
+
+        return (
+          <Tabs>
+            <TabList>
+              <TabTrigger name="apple" href="/apple" />
+              {showAll && <TabTrigger name="orange" href="/orange" />}
+            </TabList>
+            <TabSlot />
+            <Button testID="hide-orange" title="Hide orange" onPress={() => setShowAll(false)} />
+          </Tabs>
+        );
+      },
+      apple: () => null,
+      orange: () => null,
+    },
+    {
+      initialUrl: '/orange',
+    }
+  );
+
+  expect(screen).toHaveSegments(['orange']);
+
+  fireEvent.press(screen.getByTestId('hide-orange'));
+
+  expect(screen).toHaveSegments(['apple']);
+});
+
 it('does works with shared groups', () => {
   renderRouter(
     {

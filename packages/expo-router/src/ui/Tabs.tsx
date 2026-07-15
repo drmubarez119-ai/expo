@@ -73,25 +73,35 @@ export type TabsProps = ViewProps & {
 export function Tabs(props: TabsProps) {
   const { children, asChild, options, ...rest } = props;
   const Comp = asChild ? ViewSlot : View;
-
-  const { NavigationContent } = useTabsWithChildren({
-    // asChild adds an extra layer, so we need to process the child's children
-    children:
-      asChild &&
-      isValidElement(children) &&
-      children.props &&
-      typeof children.props === 'object' &&
-      'children' in children.props
-        ? (children.props.children as ReactNode)
-        : children,
-    ...options,
-  });
-
+  // asChild adds an extra layer, so we need to process the child's children
+  const triggerChildren =
+    asChild &&
+    isValidElement(children) &&
+    children.props &&
+    typeof children.props === 'object' &&
+    'children' in children.props
+      ? (children.props.children as ReactNode)
+      : children;
+  const triggers = parseTriggersFromChildren(triggerChildren);
+  // TODO(@ubax): SDK-58: Headless tabs allow for dynamic route names, so this logic here is to allow for that
+  // Improve it and align with the idea of stable routeNames - maybe consider using state routes in a different
+  // way after state is refactored.
   return (
     <Comp style={styles.tabsRoot} {...rest}>
-      <NavigationContent>{children}</NavigationContent>
+      <TabsNavigator key={JSON.stringify(triggers)} triggers={triggers} options={options}>
+        {children}
+      </TabsNavigator>
     </Comp>
   );
+}
+
+function TabsNavigator({
+  children,
+  triggers,
+  options,
+}: PropsWithChildren<{ triggers: ScreenTrigger[]; options?: UseTabsOptions }>) {
+  const { NavigationContent } = useTabsWithTriggers({ triggers, ...options });
+  return <NavigationContent>{children}</NavigationContent>;
 }
 
 // @docsMissing
