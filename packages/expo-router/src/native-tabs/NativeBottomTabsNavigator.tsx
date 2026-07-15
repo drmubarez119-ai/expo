@@ -1,14 +1,15 @@
 'use client';
 
-import React, { use, useCallback, useMemo, useRef } from 'react';
-import type { NavigatorArgs } from 'standard-navigation';
+import React, { use, useCallback, useEffect, useMemo, useRef } from 'react';
 
+import { router } from '../imperative-api';
 import type {
   ParamListBase,
   TabNavigationState,
   TabRouterOptions,
 } from '../react-navigation/native';
 import { unstable_createStandardRouterNavigator } from '../standard-navigation';
+import type { StandardNavigatorContentProps } from '../standard-navigation/types';
 import { getAllChildrenNotOfType, getAllChildrenOfType } from '../utils/children';
 import { NativeBottomTabsRouter } from './NativeBottomTabsRouter';
 import { NativeTabTrigger } from './NativeTabTrigger';
@@ -47,8 +48,11 @@ function NativeTabsContent({
   disableIndicator,
   labelVisibilityMode,
   ...rest
-}: NavigatorArgs<NativeTabOptions, NativeTabNavigationEventMap> &
-  Omit<InternalNativeTabsProps, 'screenListeners'>) {
+}: StandardNavigatorContentProps<
+  NativeTabOptions,
+  NativeTabNavigationEventMap,
+  Omit<InternalNativeTabsProps, 'screenListeners'>
+>) {
   if (use(NativeTabsContext)) {
     throw new Error(
       'Nesting Native Tabs inside each other is not supported natively. Use JS tabs for nesting instead.'
@@ -60,9 +64,13 @@ function NativeTabsContent({
   const visibleTabs = useMemo(
     () =>
       routes
-        // The <NativeTab.Trigger> always sets `hidden` to defined boolean value.
-        // If it is not defined, then it was not specified, and we should hide the tab.
-        .filter((route) => descriptors[route.key]!.options?.hidden !== true)
+        // Every filesystem route is registered in state; only routes declared by a
+        // non-hidden <NativeTabs.Trigger> become tab items.
+        .filter(
+          (route) =>
+            descriptors[route.key]!.routeSource === 'layout' &&
+            descriptors[route.key]!.options?.hidden !== true
+        )
         .map(
           (route): NativeTabsViewTabItem => ({
             options: descriptors[route.key]!.options,
@@ -82,15 +90,28 @@ function NativeTabsContent({
     [visibleTabs]
   );
 
-  if (visibleFocusedTabIndex < 0) {
-    if (process.env.NODE_ENV !== 'production') {
-      const focusedRoute = routes[state.index];
-      throw new Error(
-        `The focused tab in NativeTabsView cannot be displayed. Make sure path is correct and the route is not hidden. Route: "${focusedRoute?.href ?? focusedRoute?.name}"`
-      );
-    }
+  if (visibleTabs.length === 0) {
+    throw new Error(
+      'NativeTabs has no visible tabs, so nothing can be displayed. Every tab is either hidden or has no <NativeTabs.Trigger>. ' +
+        'Add at least one non-hidden <NativeTabs.Trigger> to the layout, or render the triggers conditionally only when at least one is visible.'
+    );
   }
+
   const focusedIndex = visibleFocusedTabIndex >= 0 ? visibleFocusedTabIndex : 0;
+
+  // The focused route can be hidden or have no trigger at all — for example a path pointing at a
+  // route without a tab, or a trigger hidden while focused. The initial tab is already rendered
+  // above via `focusedIndex`; this redirects the navigation state there too. `replace` keeps the
+  // unreachable route out of the history.
+  // TODO(@ubax): Show a formsheet for hidden tabs which are focused (Tabs + Stack in one).
+  const initialTabKey = visibleTabs[0]!.routeKey;
+  const initialTabHref = routes.find((route) => route.key === initialTabKey)?.href;
+  useEffect(() => {
+    if (visibleFocusedTabIndex < 0 && initialTabHref != null) {
+      router.replace(initialTabHref);
+    }
+  }, [visibleFocusedTabIndex, initialTabHref]);
+
   const provenanceRef = useRef(0);
 
   const onTabChange = useCallback(
@@ -170,12 +191,11 @@ const NativeTabsNavigatorWithContext = unstable_createStandardRouterNavigator<
   NativeTabNavigationEventMap,
   Omit<InternalNativeTabsProps, 'screenListeners'>,
   TabRouterOptions
->(NativeTabsContent, NativeBottomTabsRouter, { useOnlyUserDefinedScreens: true });
+>(NativeTabsContent, NativeBottomTabsRouter);
 
 export function NativeTabsNavigatorWrapper(props: NativeTabsProps) {
   const triggerChildren = useMemo(
-    () =>
-      getAllChildrenOfType(props.children, NativeTabTrigger).filter((child) => !child.props.hidden),
+    () => getAllChildrenOfType(props.children, NativeTabTrigger),
     [props.children]
   );
   const nonTriggerChildren = useMemo(

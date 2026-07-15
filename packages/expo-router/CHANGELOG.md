@@ -35,6 +35,7 @@
 
 - Rewrite native tabs using standard-navigation ([#46457](https://github.com/expo/expo/pull/46457) by [@Ubax](https://github.com/Ubax))
 - [Internal] Split `useLoaderData()` into a document cache and a per-mount Suspense store ([#47365](https://github.com/expo/expo/pull/47365) by [@hassankhan](https://github.com/hassankhan))
+- Remove `useOnlyUserDefinedScreens`. ([#TODO](https://github.com/expo/expo/pull/TODO) by [@Ubax](https://github.com/Ubax))
 
 ## 56.2.7 — 2026-05-26
 

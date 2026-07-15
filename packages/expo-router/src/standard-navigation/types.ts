@@ -1,4 +1,8 @@
-import type { createStandardNavigator, NavigatorArgs } from 'standard-navigation';
+import type {
+  createStandardNavigator,
+  NavigatorArgs,
+  NavigatorDescriptor,
+} from 'standard-navigation';
 
 import type {
   DefaultNavigatorOptions,
@@ -7,6 +11,7 @@ import type {
   NavigationHelpers,
   NavigationState,
   ParamListBase,
+  RouteSource,
 } from '../react-navigation/native';
 import type { GoBackAction, NavigateAction } from '../react-navigation/routers/CommonActions';
 
@@ -48,12 +53,6 @@ export interface IntegrateWithRouterOptions<
   NavigatorProps extends object = object,
 > {
   /**
-   * When `true`, only screens explicitly declared as `<Navigator.Screen>` children are rendered;
-   * routes discovered from the filesystem that were not declared are ignored.
-   */
-  useOnlyUserDefinedScreens?: boolean;
-
-  /**
    * Allows router-specific information to be exposed via navigator props alongside the standard
    * `state` and `actions`.
    *
@@ -72,12 +71,28 @@ export interface IntegrateWithRouterOptions<
   createProps?: (deps: StandardNavigatorCreatePropsFactoryDeps<State>) => Partial<NavigatorProps>;
 }
 
+// TODO(@ubax):SDK-58: Check if this is the best approach or wrether it is better
+// to pass a list of routes declared in layout to the navigator
+/**
+ * A standard-navigation descriptor extended with Expo Router information.
+ */
+export type StandardNavigatorDescriptor<NavigatorOptions extends object> =
+  NavigatorDescriptor<NavigatorOptions> & {
+    /**
+     * Whether the route was declared by the layout (a `<Navigator.Screen>` child) or inferred from
+     * the filesystem. Every filesystem route is registered; navigators use this to decide which
+     * routes appear in their UI.
+     */
+    routeSource?: RouteSource;
+  };
+
 export type StandardNavigatorContentProps<
   NavigatorOptions extends object,
   EventMap extends StandardNavigatorEventMapBase,
   NavigatorProps extends object,
-> = NavigatorArgs<NavigatorOptions, EventMap> &
-  Omit<NavigatorProps, keyof NavigatorArgs<NavigatorOptions, EventMap>>;
+> = Omit<NavigatorArgs<NavigatorOptions, EventMap>, 'descriptors'> & {
+  descriptors: Record<string, StandardNavigatorDescriptor<NavigatorOptions>>;
+} & Omit<NavigatorProps, keyof NavigatorArgs<NavigatorOptions, EventMap>>;
 
 /**
  * Lets TypeScript infer `EventMap` and `NavigatorProps` from a `NavigatorContent` component.
