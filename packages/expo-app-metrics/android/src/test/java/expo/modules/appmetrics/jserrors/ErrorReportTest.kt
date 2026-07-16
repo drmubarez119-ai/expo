@@ -42,4 +42,19 @@ class ErrorReportTest {
     val attributes = report.toLogRecord(sessionId = "s").attributes ?: ""
     assertFalse(attributes.contains("expo.error.component_stack"))
   }
+
+  @Test
+  fun `tags a caught error with the caught source at error severity`() {
+    val report = ErrorReport(
+      source = ErrorSource.CAUGHT,
+      type = "TypeError",
+      message = "nope",
+      stacktrace = "at f (app.js:1:1)",
+      isFatal = false
+    )
+    val record = report.toLogRecord(sessionId = "s")
+    val attributes = record.attributes ?: ""
+    assertTrue(attributes.contains("\"expo.error.source\":\"caught\""))
+    assertEquals("error", record.severity)
+  }
 }

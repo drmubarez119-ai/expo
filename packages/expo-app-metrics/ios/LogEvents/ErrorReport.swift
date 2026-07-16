@@ -17,6 +17,7 @@ struct ErrorReport {
   enum Source: String, Enumerable {
     case global
     case errorBoundary
+    case caught
   }
 
   /// Builds the `exception` log event for the live path.
